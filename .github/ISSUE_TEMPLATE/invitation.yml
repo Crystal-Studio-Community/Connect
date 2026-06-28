@@ -1,0 +1,30 @@
+name: Invitation to Crystal-Studio-Community Organization
+description: I would like to join this open-source community
+title: "Please invite me to the Crystal-Studio-Community Organization"
+labels: [invite me to the community]
+body:
+  - type: input
+    id: name
+    attributes:
+      label: Name
+      placeholder: Enter your name or nickname
+    validations:
+      required: true
+  - type: input
+    id: discordname
+    attributes:
+      label: Discord Username
+      placeholder: Enter your Discord username (optional)
+    validations:
+      required: false
+  - type: textarea
+    id: feedback
+    attributes:
+      label: Why do you want to join?
+      placeholder: Let us know what you want to learn or build here!
+    validations:
+      required: false
+  - type: markdown
+    attributes:
+      value: |
+        We are excited to have you! Click Submit to get your automated invite.

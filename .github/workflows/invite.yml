@@ -1,0 +1,102 @@
+name: Automate Onboarding
+
+on:
+  issues:
+    types: [labeled]
+
+jobs:
+  invite:
+    runs-on: ubuntu-latest
+    # Fixes Recode Hive's logical bug: Only executes if the correct label is added
+    if: github.event.label.name == 'invite me to the community'
+
+    steps:
+      - name: Onboard Member
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.ORG_ADMIN_TOKEN }}
+          script: |
+            const org = 'Crystal-Studio-Community';
+            const username = context.payload.issue.user.login;
+            const issueNumber = context.issue.number;
+
+            try {
+              // 1. Send membership invitation
+              console.log(`Inviting ${username} to ${org}...`);
+              await github.rest.orgs.setMembershipForUser({
+                org: org,
+                username: username,
+                role: 'member'
+              });
+
+              // 2. Add success label and comment
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
+                labels: ['invited']
+              });
+
+              const commentBody = `### 🎉 Welcome to Crystal-Studio-Community, @${username}! 🚀\n\n` +
+                `An invitation has been sent to your GitHub account. \n\n` +
+                `👉 **[Click here to accept the invitation](https://github.com/orgs/${org}/invitation)** \n\n` +
+                `Once you join, please remember to **change your organization membership visibility to Public** so it shows up on your profile! \n` +
+                `You can manage this under the [People list](https://github.com/orgs/${org}/people).`;
+
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
+                body: commentBody
+              });
+
+            } catch (error) {
+              console.error(error);
+              const isAlreadyMember = error.message.includes('already a member') || error.status === 422;
+
+              if (isAlreadyMember) {
+                await github.rest.issues.addLabels({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issueNumber,
+                  labels: ['invited']
+                });
+
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issueNumber,
+                  body: `ℹ️ @${username}, you are already a member of the organization or have a pending invitation!\n\nCheck your status here: https://github.com/orgs/${org}`
+                });
+              } else {
+                await github.rest.issues.addLabels({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issueNumber,
+                  labels: ['invite-failed']
+                });
+
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issueNumber,
+                  body: `⚠️ **Onboarding Automation Failed**\n\nCould not invite @${username}. Error details: \`\`\`${error.message}\`\`\`\n\n*Note: Administrator attention required.*`
+                });
+              }
+            } finally {
+              // Always close the issue to keep the tracker clean
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
+                state: 'closed'
+              });
+            }
+
+      - name: Notify Discord Channel
+        # Run only if onboarding was successful AND the webhook secret is configured
+        if: success() && secrets.DISCORD_WEBHOOK_URL != ''
+        run: |
+          curl -H "Content-Type: application/json" \
+               -d "{\"content\": \"🎉 **New Member Joined!** Please welcome **${{ github.event.issue.user.login }}** to the Crystal-Studio-Community! 🚀\"}" \
+               "${{ secrets.DISCORD_WEBHOOK_URL }}"
