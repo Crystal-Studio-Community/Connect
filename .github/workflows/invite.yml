@@ -2,13 +2,15 @@ name: Automate Onboarding
 
 on:
   issues:
-    types: [labeled]
+    types: [opened, labeled]
 
 jobs:
   invite:
     runs-on: ubuntu-latest
-    # Fixes Recode Hive's logical bug: Only executes if the correct label is added
-    if: github.event.label.name == 'invite me to the community'
+    # Triggers if the label was just added, OR if the issue was opened with the label already attached
+    if: |
+      github.event.label.name == 'invite me to the community' ||
+      contains(github.event.issue.labels.*.name, 'invite me to the community')
 
     steps:
       - name: Onboard Member
