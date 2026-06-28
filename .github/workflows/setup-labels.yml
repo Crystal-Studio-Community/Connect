@@ -1,0 +1,40 @@
+name: Setup Labels
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create Labels
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const labels = [
+              { name: 'invite me to the community', color: '0078D7', description: 'Trigger for auto-invitations' },
+              { name: 'invited', color: '28A745', description: 'User has been successfully invited' },
+              { name: 'invite-failed', color: 'D73A49', description: 'Onboarding invitation failed' }
+            ];
+
+            for (const label of labels) {
+              try {
+                await github.rest.issues.createLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  name: label.name,
+                  color: label.color,
+                  description: label.description
+                });
+                console.log(`Created label: ${label.name}`);
+              } catch (error) {
+                // Status 422 means the label already exists
+                if (error.status === 422) {
+                  console.log(`Label already exists: ${label.name}`);
+                } else {
+                  console.error(`Failed to create label ${label.name}:`, error);
+                }
+              }
+            }
