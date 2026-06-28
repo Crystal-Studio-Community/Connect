@@ -2,15 +2,13 @@ name: Automate Onboarding
 
 on:
   issues:
-    types: [opened, labeled]
+    types: [opened]
 
 jobs:
   invite:
     runs-on: ubuntu-latest
-    # Triggers if the label was just added, OR if the issue was opened with the label already attached
-    if: |
-      github.event.label.name == 'invite me to the community' ||
-      contains(github.event.issue.labels.*.name, 'invite me to the community')
+    # Run only if the newly opened issue has the trigger label
+    if: contains(github.event.issue.labels.*.name, 'invite me to the community')
 
     steps:
       - name: Onboard Member
