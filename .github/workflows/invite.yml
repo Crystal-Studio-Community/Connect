@@ -94,9 +94,14 @@ jobs:
             }
 
       - name: Notify Discord Channel
-        # Run only if onboarding was successful AND the webhook secret is configured
-        if: success() && secrets.DISCORD_WEBHOOK_URL != ''
+        if: success()
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: |
-          curl -H "Content-Type: application/json" \
-               -d "{\"content\": \"🎉 **New Member Joined!** Please welcome **${{ github.event.issue.user.login }}** to the Crystal-Studio-Community! 🚀\"}" \
-               "${{ secrets.DISCORD_WEBHOOK_URL }}"
+          if [ -n "$DISCORD_WEBHOOK_URL" ]; then
+            curl -H "Content-Type: application/json" \
+                 -d "{\"content\": \"🎉 **New Member Joined!** Please welcome **${{ github.event.issue.user.login }}** to the Crystal-Studio-Community! 🚀\"}" \
+                 "$DISCORD_WEBHOOK_URL"
+          else
+            echo "Discord Webhook URL is not configured. Skipping notification."
+          fi
